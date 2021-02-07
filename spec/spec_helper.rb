@@ -12,17 +12,22 @@ require "capybara/rails"
 require "aruba/rspec"
 require "apitome"
 
-def register_driver(name, args = [], opts = {})
+def register_driver(name, args = [], **opts)
   Capybara.register_driver(name) do |app|
-    options = { args: args + ["window-size=1440,1080"] }
-    options[:binary] = ENV.fetch("GOOGLE_CHROME_SHIM", nil)
-    capabilities = Selenium::WebDriver::Remote::Capabilities.chrome(chromeOptions: options.compact)
-    Capybara::Selenium::Driver.new(app, { browser: :chrome, desired_capabilities: capabilities }.merge(opts))
+    binary = ENV.fetch("GOOGLE_CHROME_SHIM", nil)
+
+    options          = {}
+    options[:args]   = [*args, "window-size=1440,1080"]
+    options[:binary] = binary if binary
+
+    capabilities = Selenium::WebDriver::Remote::Capabilities.chrome("goog:chromeOptions" => options)
+
+    Capybara::Selenium::Driver.new(app, browser: :chrome, desired_capabilities: capabilities, **opts)
   end
 end
 
 register_driver(:chrome)
-register_driver(:chrome_headless, %w[headless disable-gpu no-sandbox disable-dev-shm-usage])
+register_driver(:chrome_headless, %w[no-sandbox headless disable-gpu window-size=1280,1024 disable-features=VizDisplayCompositor])
 
 Aruba.configure do |config|
   config.exit_timeout = 60
