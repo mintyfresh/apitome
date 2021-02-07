@@ -38,12 +38,19 @@ class Apitome::DocsController < Object.const_get(Apitome.configuration.parent_co
       if Apitome.configuration.remote_url
         file = readme ? file : "#{Apitome.configuration.doc_path}/#{file}"
         file = CGI.escape("#{Apitome.configuration.remote_url}/#{file}")
+
+        connnection = Faraday.new(url: file) do |conn|
+          basic_auth = Apitome.configuration.http_basic_authentication
+          conn.basic_auth(basic_auth[0], basic_auth[1]) if basic_auth
+        end
+
+        connnection.get.read
       else
         file = Apitome.configuration.root.join(Apitome.configuration.doc_path, file)
         raise Apitome::FileNotFoundError.new("Unable to find #{file}") unless File.exist?(file)
-      end
 
-      open(file, file_opts).read
+        File.open(file).read
+      end
     end
 
     def resources
@@ -56,14 +63,6 @@ class Apitome::DocsController < Object.const_get(Apitome.configuration.parent_co
 
     def set_example(resource)
       @example = JSON.parse(file_for("#{resource}.json"))
-    end
-
-    def file_opts
-      if Apitome.configuration.remote_url && Apitome.configuration.http_basic_authentication
-        { http_basic_authentication: Apitome.configuration.http_basic_authentication }
-      else
-        {}
-      end
     end
 
     def formatted_readme
